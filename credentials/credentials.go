@@ -83,6 +83,8 @@ type TransportAuthenticator interface {
 	// NewListener creates a listener which accepts connections with requested
 	// authentication handshake.
 	NewListener(lis net.Listener) net.Listener
+	// NewServerConn is called in the server for every new connection.
+	NewServerConn(ctx context.Context, conn net.Conn) context.Context
 	Credentials
 }
 
@@ -136,6 +138,10 @@ func (c *tlsCreds) NewListener(lis net.Listener) net.Listener {
 		Certificates: c.certificates,
 		NextProtos:   alpnProtoStr,
 	})
+}
+
+func (c *tlsCreds) NewServerConn(ctx context.Context, conn net.Conn) context.Context {
+	return ctx
 }
 
 // NewClientTLSFromCert constructs a TLS from the input certificate for client.

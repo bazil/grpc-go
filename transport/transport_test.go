@@ -143,9 +143,9 @@ func (s *server) start(useTLS bool, port int, maxStreams uint32, suspend bool) {
 		s.mu.Unlock()
 		h := &testStreamHandler{t}
 		if suspend {
-			go t.HandleStreams(h.handleStreamSuspension)
+			go t.HandleStreams(context.TODO(), h.handleStreamSuspension)
 		} else {
-			go t.HandleStreams(h.handleStream)
+			go t.HandleStreams(context.TODO(), h.handleStream)
 		}
 	}
 }
