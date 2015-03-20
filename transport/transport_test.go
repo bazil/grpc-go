@@ -175,11 +175,11 @@ func (s *server) start(useTLS bool, port int, maxStreams uint32, ht hType) {
 		h := &testStreamHandler{t}
 		switch ht {
 		case suspended:
-			go t.HandleStreams(h.handleStreamSuspension)
+			go t.HandleStreams(context.TODO(), h.handleStreamSuspension)
 		case misbehaved:
-			go t.HandleStreams(h.handleStreamMisbehave)
+			go t.HandleStreams(context.TODO(), h.handleStreamMisbehave)
 		default:
-			go t.HandleStreams(h.handleStream)
+			go t.HandleStreams(context.TODO(), h.handleStream)
 		}
 	}
 }

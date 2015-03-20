@@ -45,6 +45,7 @@ import (
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/transport"
 )
@@ -87,6 +88,7 @@ type Server struct {
 type options struct {
 	codec                Codec
 	maxConcurrentStreams uint32
+	auth                 credentials.TransportAuthenticator
 }
 
 // A ServerOption sets options.
@@ -103,6 +105,12 @@ func CustomCodec(codec Codec) ServerOption {
 func MaxConcurrentStreams(n uint32) ServerOption {
 	return func(o *options) {
 		o.maxConcurrentStreams = n
+	}
+}
+
+func WithServerTransportAuthenticator(auth credentials.TransportAuthenticator) ServerOption {
+	return func(o *options) {
+		o.auth = auth
 	}
 }
 
@@ -167,6 +175,10 @@ var (
 // read gRPC request and then call the registered handlers to reply to them.
 // Service returns when lis.Accept fails.
 func (s *Server) Serve(lis net.Listener) error {
+	if s.opts.auth != nil {
+		lis = s.opts.auth.NewListener(lis)
+	}
+
 	s.mu.Lock()
 	if s.lis == nil {
 		s.mu.Unlock()
@@ -186,6 +198,11 @@ func (s *Server) Serve(lis net.Listener) error {
 			return err
 		}
 
+		ctx := context.TODO()
+		if s.opts.auth != nil {
+			ctx = s.opts.auth.NewServerConn(ctx, c)
+		}
+
 		s.mu.Lock()
 		if s.conns == nil {
 			s.mu.Unlock()
@@ -203,7 +220,7 @@ func (s *Server) Serve(lis net.Listener) error {
 		s.mu.Unlock()
 
 		go func() {
-			st.HandleStreams(func(stream *transport.Stream) {
+			st.HandleStreams(ctx, func(stream *transport.Stream) {
 				s.handleStream(st, stream)
 			})
 			s.mu.Lock()
